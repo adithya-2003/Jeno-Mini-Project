@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mithilesha Analytics - Chat</title>
+    <link
+      rel="shortcut icon"
+      href="https://cdn.cosmos.so/597fcf16-bfa9-4b76-bad3-8a0726e4abd5?format=jpeg"
+      type="image/x-icon"
+    />
+    <link rel="stylesheet" href="chatbot.css" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=general-sans@400,600,700&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://kit.fontawesome.com/4b1022cf8e.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">
+        <p>M</p>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="stock.html">Stock Status</a>
+        <a href="about.html">About</a>
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          aria-label="Toggle dark mode"
+        >
+          <i class="fas fa-moon"></i>
+        </button>
+      </nav>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages">
+        <div class="message bot-message">
+          <img src="./assets/M.png" alt="" class="profile-image" />
+          <div class="message-text">
+            Hello! I'm your Mithilesha Analytics AI assistant. 
+            I can help you with:
+            - Stock levels and trends
+            - Sales data analysis
+            - Dashboard insights
+            
+            Ask me anything about our Apple product data!
+          </div>
+        </div>
+      </div>
+      
+      <div class="loading" id="loading" style="display: none">
+        Mithilesha is thinking...
+      </div>
+
+      <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <h2>M</h2>
+          <p>Mithilesha Analytics</p>
+        </div>
+        <p class="copyright">
+          © 2025 Mithilesha Analytics. All rights reserved.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      const API_BASE_URL = "https://mithilesha-render.onrender.com";  // Dynamic API URL
+      const chatMessages = document.getElementById("chatMessages");
+      const userInput = document.getElementById("userInput");
+      const loading = document.getElementById("loading");
+
+      // Event listener for Enter key
+      userInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+
+      // Navigation highlight
+      const currentPage = window.location.pathname.split("/").pop();
+      const navLinks = document.querySelectorAll(".nav-links a");
+      navLinks.forEach((link) => {
+        const linkHref = link.getAttribute("href");
+        if (
+          linkHref === currentPage ||
+          (linkHref === "chatbot.html" &&
+            (currentPage === "" || currentPage === "chatbot.html"))
+        ) {
+          link.classList.add("active-link");
+        }
+      });
+
+      // Dark mode toggle
+      const themeToggle = document.getElementById("theme-toggle");
+      const themeIcon = themeToggle.querySelector("i");
+      
+      if (localStorage.getItem("dark-mode") === "true") {
+        document.body.classList.add("dark-mode");
+        themeIcon.classList.replace("fa-moon", "fa-sun");
+      }
+      
+      themeToggle.addEventListener("click", function () {
+        document.body.classList.toggle("dark-mode");
+        if (document.body.classList.contains("dark-mode")) {
+          themeIcon.classList.replace("fa-moon", "fa-sun");
+          localStorage.setItem("dark-mode", "true");
+        } else {
+          themeIcon.classList.replace("fa-sun", "fa-moon");
+          localStorage.setItem("dark-mode", "false");
+        }
+      });
+
+      async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        appendUserMessage(message);
+        userInput.value = "";
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        loading.style.display = "block";
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api`, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json" 
+            },
+            body: JSON.stringify({ message })
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          appendBotMessage(data.message);
+        } catch (error) {
+          console.error("Chat Error:", error);
+          appendBotMessage("Sorry, I encountered an error. Please try again.");
+        } finally {
+          loading.style.display = "none";
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+
+      function appendUserMessage(message) {
+        const userMessageDiv = document.createElement("div");
+        userMessageDiv.classList.add("message", "user-message");
+        userMessageDiv.textContent = message;
+        chatMessages.appendChild(userMessageDiv);
+      }
+
+      function appendBotMessage(message) {
+        const botMessageDiv = document.createElement("div");
+        botMessageDiv.classList.add("message", "bot-message");
+
+        const profileImg = document.createElement("img");
+        profileImg.src = "./assets/M.png";
+        profileImg.alt = "bot profile";
+        profileImg.classList.add("profile-image");
+
+        const messageTextDiv = document.createElement("div");
+        messageTextDiv.classList.add("message-text");
+        messageTextDiv.innerHTML = beautifyResponse(message);
+
+        botMessageDiv.appendChild(profileImg);
+        botMessageDiv.appendChild(messageTextDiv);
+        chatMessages.appendChild(botMessageDiv);
+      }
+
+      function beautifyResponse(text) {
+        const paragraphs = text.split(/\n\n|\n(?=\w)/).filter((p) => p.trim());
+
+        let htmlContent = "";
+
+        paragraphs.forEach((paragraph) => {
+          if (paragraph.includes("* **")) {
+            const listItems = paragraph
+              .split("\n")
+              .filter((line) => line.trim().startsWith("*"));
+            
+            if (listItems.length > 0) {
+              htmlContent += '<ul class="product-list">';
+              listItems.forEach((item) => {
+                const [title, ...description] = item
+                  .replace("* **", "")
+                  .split(":");
+                
+                htmlContent += `
+                  <li>
+                    <h3>${title.trim()}</h3>
+                    <p>${description.join(":").trim()}</p>
+                  </li>
+                `;
+              });
+              htmlContent += "</ul>";
+            } else {
+              htmlContent += `<p>${paragraph.trim()}</p>`;
+            }
+          } else {
+            htmlContent += `<p>${paragraph.trim()}</p>`;
+          }
+        });
+
+        return htmlContent;
+      }
+    </script>
+  </body>
+</html>
